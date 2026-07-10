@@ -155,6 +155,11 @@ function updateMatchSettings() {
   const selectedLeftHouse = leftHouseSelect.value;
   const selectedRightHouse = rightHouseSelect.value;
 
+  if (isTournamentComplete()) {
+    alert("六輪都已經完成了，請先清空歷史紀錄再開始新一場。");
+    return;
+  }
+
   if (selectedLeftHouse === selectedRightHouse) {
     alert("左右兩隊不能選同一個家。");
     return;
@@ -193,6 +198,10 @@ function getRoundLabel(roundNumber) {
   return roundLabels[roundNumber - 1] || `第 ${roundNumber} 輪`;
 }
 
+function isTournamentComplete() {
+  return matchState.roundNumber > roundLabels.length;
+}
+
 function getWinnerName(scoreA, scoreB, leftHouse, rightHouse) {
   if (scoreA > scoreB) {
     return leftHouse;
@@ -225,7 +234,7 @@ function finishCurrentRound() {
   resetCurrentRound();
   matchState = {
     ...matchState,
-    roundNumber: Math.min(matchState.roundNumber + 1, roundLabels.length),
+    roundNumber: matchState.roundNumber + 1,
     roundActive: false
   };
 }
@@ -362,20 +371,19 @@ function resetGame() {
 
 function clearHistoryRecords() {
   const confirmed = confirm(
-    "確定要清空操作紀錄與輪次紀錄嗎？"
+    "確定要清空所有紀錄並回到第一輪嗎？"
   );
 
   if (!confirmed) {
     return;
   }
 
-  gameState = {
-    ...gameState,
-    history: []
-  };
+  resetCurrentRound();
 
   matchState = {
     ...matchState,
+    roundNumber: 1,
+    roundActive: false,
     roundRecords: []
   };
 
@@ -438,7 +446,7 @@ function loadMatchSettings() {
 
     if (
       savedRoundNumber >= 1 &&
-      savedRoundNumber <= roundLabels.length &&
+      savedRoundNumber <= roundLabels.length + 1 &&
       houses.includes(savedMatchState.leftHouse) &&
       houses.includes(savedMatchState.rightHouse) &&
       savedMatchState.leftHouse !== savedMatchState.rightHouse
@@ -716,11 +724,15 @@ function render() {
   buttonA.textContent = `${matchState.leftHouse}答對`;
   buttonB.textContent = `${matchState.rightHouse}答對`;
   currentRoundElement.textContent =
-    getRoundLabel(matchState.roundNumber);
+    isTournamentComplete()
+      ? "全部輪次已完成"
+      : getRoundLabel(matchState.roundNumber);
   currentMatchupElement.textContent =
     isRoundActive
       ? `${matchState.leftHouse} VS ${matchState.rightHouse}`
-      : "請選擇家名後按更新本輪";
+      : isTournamentComplete()
+        ? "請清空歷史紀錄後開始新一場"
+        : "請選擇家名後按更新本輪";
 
   scoreAElement.textContent = gameState.scoreA;
   scoreBElement.textContent = gameState.scoreB;
