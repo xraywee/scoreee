@@ -47,7 +47,8 @@ let matchState = {
 let syncState = {
   applyingRemoteData: false,
   writeTimer: null,
-  eventSource: null
+  eventSource: null,
+  connectionErrorTimer: null
 };
 
 const scoreAElement = document.getElementById("score-a");
@@ -511,8 +512,6 @@ async function saveRemoteState() {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
-
-    updateSyncStatus("已連線");
   } catch (error) {
     console.error("同步到 Firebase 失敗：", error);
     updateSyncStatus("同步失敗，暫用本機資料");
@@ -591,10 +590,18 @@ function initRemoteSync() {
   syncState.eventSource.addEventListener("put", handleRemoteEvent);
   syncState.eventSource.addEventListener("patch", handleRemoteEvent);
   syncState.eventSource.addEventListener("open", function () {
+    clearTimeout(syncState.connectionErrorTimer);
+    syncState.connectionErrorTimer = null;
     updateSyncStatus("已連線");
   });
   syncState.eventSource.addEventListener("error", function () {
-    updateSyncStatus("連線異常");
+    if (syncState.connectionErrorTimer) {
+      return;
+    }
+    syncState.connectionErrorTimer = setTimeout(function () {
+      syncState.connectionErrorTimer = null;
+      updateSyncStatus("連線異常");
+    }, 3000);
   });
 }
 
