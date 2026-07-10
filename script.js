@@ -47,8 +47,7 @@ let matchState = {
 let syncState = {
   applyingRemoteData: false,
   writeTimer: null,
-  eventSource: null,
-  connectionErrorTimer: null
+  eventSource: null
 };
 
 const scoreAElement = document.getElementById("score-a");
@@ -533,6 +532,8 @@ async function loadRemoteState() {
     } else {
       await saveRemoteState();
     }
+
+    updateSyncStatus("已連線");
   } catch (error) {
     console.error("讀取 Firebase 資料失敗：", error);
     updateSyncStatus("連線異常");
@@ -569,8 +570,6 @@ function handleRemoteEvent(event) {
       applyRemoteState(message.data);
     }
 
-    clearTimeout(syncState.connectionErrorTimer);
-    syncState.connectionErrorTimer = null;
     updateSyncStatus("已連線");
   } catch (error) {
     console.error("讀取 Firebase 即時資料失敗：", error);
@@ -583,6 +582,11 @@ function initRemoteSync() {
     return;
   }
 
+  if (window.location.protocol === "file:") {
+    updateSyncStatus("連線異常");
+    return;
+  }
+
   updateSyncStatus("連線中");
 
   loadRemoteState();
@@ -591,18 +595,10 @@ function initRemoteSync() {
   syncState.eventSource.addEventListener("put", handleRemoteEvent);
   syncState.eventSource.addEventListener("patch", handleRemoteEvent);
   syncState.eventSource.addEventListener("open", function () {
-    clearTimeout(syncState.connectionErrorTimer);
-    syncState.connectionErrorTimer = null;
     updateSyncStatus("已連線");
   });
   syncState.eventSource.addEventListener("error", function () {
-    if (syncState.connectionErrorTimer) {
-      return;
-    }
-    syncState.connectionErrorTimer = setTimeout(function () {
-      syncState.connectionErrorTimer = null;
-      updateSyncStatus("連線異常");
-    }, 3000);
+    // SSE 在部分行動網路的 Proxy 環境會失敗，不據此判斷連線狀態
   });
 }
 
