@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>遊戲算分器</title>
+
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <main class="container">
+    <h1>遊戲算分器</h1>
+
+    <section class="scoreboard">
+      <div class="team-card">
+        <h2>A 隊</h2>
+        <p id="score-a">0</p>
+      </div>
+
+      <div class="team-card">
+        <h2>B 隊</h2>
+        <p id="score-b">0</p>
+      </div>
+    </section>
+
+    <section class="game-card">
+      <h2>題目遊戲</h2>
+
+      <p class="question-info">
+        第 <span id="question-number">1</span> 題
+      </p>
+
+      <p class="question-score">
+        本題 <span id="question-score">10</span> 分
+      </p>
+
+      <div class="answer-buttons">
+        <button id="button-a">A 隊答對</button>
+
+        <button id="button-none" class="secondary">
+          無人答對
+        </button>
+
+        <button id="button-b">B 隊答對</button>
+      </div>
+    </section>
+
+    <section class="controls">
+      <button id="undo-button" class="secondary">
+        撤銷上一步
+      </button>
+
+      <button id="reset-button" class="danger">
+        重新開始
+      </button>
+    </section>
+
+    <section class="game-card">
+      <h2>操作紀錄</h2>
+      <ul id="history-list"></ul>
+    </section>
+  </main>
+
+  <script src="script.js"></script>
+</body>
+</html>
