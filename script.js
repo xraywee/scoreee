@@ -369,7 +369,7 @@ function resetGame() {
   render();
 }
 
-function clearHistoryRecords() {
+async function clearHistoryRecords() {
   const confirmed = confirm(
     "確定要清空所有紀錄並回到第一輪嗎？"
   );
@@ -378,18 +378,27 @@ function clearHistoryRecords() {
     return;
   }
 
+  clearTimeout(syncState.gameStateSaveTimer);
+  clearTimeout(syncState.matchStateSaveTimer);
+  syncState.gameStateSaveTimer = null;
+  syncState.matchStateSaveTimer = null;
+
   resetCurrentRound();
 
   matchState = {
-    ...matchState,
     roundNumber: 1,
+    leftHouse: "一家",
+    rightHouse: "二家",
     roundActive: false,
     roundRecords: []
   };
 
-  saveGame();
-  saveMatchSettings();
+  saveLocalStateOnly();
   render();
+
+  if (isRemoteSyncEnabled()) {
+    await saveRemoteState();
+  }
 }
 
 function saveGame() {
@@ -546,6 +555,8 @@ async function saveRemoteState() {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
+
+    updateSyncStatus("已連線");
   } catch (error) {
     console.error("同步到 Firebase 失敗：", error);
     updateSyncStatus("同步失敗，暫用本機資料");
@@ -622,8 +633,17 @@ function applyRemoteState(remoteState) {
     return;
   }
 
+  const remoteGameState = remoteState.gameState;
+
   syncState.applyingRemoteData = true;
-  gameState = remoteState.gameState;
+  gameState = {
+    scoreA: remoteGameState.scoreA || 0,
+    scoreB: remoteGameState.scoreB || 0,
+    questionIndex: remoteGameState.questionIndex || 0,
+    history: Array.isArray(remoteGameState.history)
+      ? remoteGameState.history
+      : []
+  };
   matchState = {
     roundNumber: remoteState.matchState.roundNumber || 1,
     leftHouse: remoteState.matchState.leftHouse || "一家",
