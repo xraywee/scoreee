@@ -41,6 +41,7 @@ let matchState = {
   roundNumber: 1,
   leftHouse: "一家",
   rightHouse: "二家",
+  roundActive: false,
   roundRecords: []
 };
 
@@ -54,6 +55,14 @@ let syncState = {
 
 const scoreAElement = document.getElementById("score-a");
 const scoreBElement = document.getElementById("score-b");
+const scoreboardSection =
+  document.getElementById("scoreboard-section");
+const questionSection =
+  document.getElementById("question-section");
+const roundControlsSection =
+  document.getElementById("round-controls-section");
+const historySection =
+  document.getElementById("history-section");
 const teamATitleElement = document.getElementById("team-a-title");
 const teamBTitleElement = document.getElementById("team-b-title");
 const currentRoundElement = document.getElementById("current-round");
@@ -151,22 +160,22 @@ function updateMatchSettings() {
     return;
   }
 
-  const shouldAdvanceRound = hasCurrentRoundProgress();
-
-  if (shouldAdvanceRound) {
-    alert(getWinnerMessage());
-    finishCurrentRound();
+  if (matchState.roundActive && hasCurrentRoundProgress()) {
+    alert("本輪已經開始計分，請先提前結束本輪或重置本輪。");
+    render();
+    return;
   }
+
+  resetCurrentRound();
 
   matchState = {
     ...matchState,
     leftHouse: selectedLeftHouse,
-    rightHouse: selectedRightHouse
+    rightHouse: selectedRightHouse,
+    roundActive: true
   };
 
-  if (shouldAdvanceRound) {
-    saveGame();
-  }
+  saveGame();
   saveMatchSettings();
   render();
 }
@@ -216,11 +225,17 @@ function finishCurrentRound() {
   resetCurrentRound();
   matchState = {
     ...matchState,
-    roundNumber: Math.min(matchState.roundNumber + 1, roundLabels.length)
+    roundNumber: Math.min(matchState.roundNumber + 1, roundLabels.length),
+    roundActive: false
   };
 }
 
 function endRoundEarly() {
+  if (!matchState.roundActive) {
+    alert("請先按更新本輪開始計分。");
+    return;
+  }
+
   if (!hasCurrentRoundProgress()) {
     alert("本輪還沒有任何分數或答題紀錄。");
     return;
@@ -263,6 +278,11 @@ function resetCurrentRound() {
 }
 
 function answerQuestion(team) {
+  if (!matchState.roundActive) {
+    alert("請先按更新本輪開始計分。");
+    return;
+  }
+
   if (gameState.questionIndex >= questionScores.length) {
     alert("所有題目都已經完成了。");
     return;
@@ -427,6 +447,7 @@ function loadMatchSettings() {
         roundNumber: savedRoundNumber,
         leftHouse: savedMatchState.leftHouse,
         rightHouse: savedMatchState.rightHouse,
+        roundActive: Boolean(savedMatchState.roundActive),
         roundRecords: savedRoundRecords
       };
     }
@@ -599,6 +620,12 @@ function applyRemoteState(remoteState) {
     roundNumber: remoteState.matchState.roundNumber || 1,
     leftHouse: remoteState.matchState.leftHouse || "一家",
     rightHouse: remoteState.matchState.rightHouse || "二家",
+    roundActive:
+      Boolean(remoteState.matchState.roundActive) ||
+      gameState.questionIndex > 0 ||
+      gameState.scoreA > 0 ||
+      gameState.scoreB > 0 ||
+      gameState.history.length > 0,
     roundRecords: Array.isArray(remoteState.matchState.roundRecords)
       ? remoteState.matchState.roundRecords
       : []
@@ -627,7 +654,7 @@ function startRemotePolling() {
   clearInterval(syncState.pollTimer);
 
   syncState.pollTimer = setInterval(function () {
-    if (syncState.writeTimer) {
+    if (syncState.gameStateSaveTimer || syncState.matchStateSaveTimer) {
       return;
     }
 
@@ -674,8 +701,15 @@ function renderHistoryText(record) {
 }
 
 function render() {
+  const isRoundActive = Boolean(matchState.roundActive);
+
   leftHouseSelect.value = matchState.leftHouse;
   rightHouseSelect.value = matchState.rightHouse;
+
+  scoreboardSection.classList.toggle("is-hidden", !isRoundActive);
+  questionSection.classList.toggle("is-hidden", !isRoundActive);
+  roundControlsSection.classList.toggle("is-hidden", !isRoundActive);
+  historySection.classList.toggle("is-hidden", !isRoundActive);
 
   teamATitleElement.textContent = matchState.leftHouse;
   teamBTitleElement.textContent = matchState.rightHouse;
@@ -684,7 +718,9 @@ function render() {
   currentRoundElement.textContent =
     getRoundLabel(matchState.roundNumber);
   currentMatchupElement.textContent =
-    `${matchState.leftHouse} VS ${matchState.rightHouse}`;
+    isRoundActive
+      ? `${matchState.leftHouse} VS ${matchState.rightHouse}`
+      : "請選擇家名後按更新本輪";
 
   scoreAElement.textContent = gameState.scoreA;
   scoreBElement.textContent = gameState.scoreB;

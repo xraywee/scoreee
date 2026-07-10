@@ -39,7 +39,7 @@
       <p id="current-matchup">一家 VS 二家</p>
     </section>
 
-    <section class="scoreboard">
+    <section id="scoreboard-section" class="scoreboard">
       <div class="team-card">
         <h2 id="team-a-title">A 隊</h2>
         <p id="score-a">0</p>
@@ -51,7 +51,7 @@
       </div>
     </section>
 
-    <section class="game-card">
+    <section id="question-section" class="game-card">
       <h2>題目遊戲</h2>
 
       <p class="question-info">
@@ -73,7 +73,7 @@
       </div>
     </section>
 
-    <section class="controls">
+    <section id="round-controls-section" class="controls">
       <button id="undo-button" class="secondary">
         撤銷上一步
       </button>
@@ -82,16 +82,18 @@
         提前結束本輪
       </button>
 
-      <button id="clear-history-button" class="secondary">
-        清空歷史紀錄
-      </button>
-
       <button id="reset-button" class="danger">
         重置本輪
       </button>
     </section>
 
-    <section class="game-card">
+    <section class="history-controls">
+      <button id="clear-history-button" class="secondary">
+        清空歷史紀錄
+      </button>
+    </section>
+
+    <section id="history-section" class="game-card">
       <h2>操作紀錄</h2>
       <ul id="history-list"></ul>
     </section>
@@ -102,6 +104,6 @@
     </section>
   </main>
 
-  <script src="script.js?v=6"></script>
+  <script src="script.js?v=7"></script>
 </body>
 </html>

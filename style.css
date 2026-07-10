@@ -36,6 +36,10 @@ button {
     padding: 20px;
 }
 
+.is-hidden {
+    display: none !important;
+}
+
 /* =========================
    標題
 ========================= */
@@ -171,6 +175,12 @@ h2 {
 .controls {
     display: grid;
     grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.history-controls {
+    display: grid;
     gap: 12px;
     margin-bottom: 18px;
 }
