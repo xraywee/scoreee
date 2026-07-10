@@ -464,6 +464,14 @@ function getStateSnapshot() {
 
 function updateSyncStatus(text) {
   syncStatusElement.textContent = `同步：${text}`;
+  syncStatusElement.classList.toggle(
+    "sync-status-connected",
+    text === "已連線"
+  );
+  syncStatusElement.classList.toggle(
+    "sync-status-disconnected",
+    text !== "已連線"
+  );
 }
 
 function queueRemoteSave() {

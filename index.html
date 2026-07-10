@@ -10,12 +10,15 @@
 
   <title>遊戲算分器</title>
 
-  <link rel="stylesheet" href="style.css?v=20260710-1">
+  <link rel="stylesheet" href="style.css?v=20260710-2">
 </head>
 
 <body>
   <main class="container">
     <h1>遊戲算分器</h1>
+    <p id="sync-status" class="sync-status sync-status-disconnected">
+      同步：本機模式
+    </p>
 
     <section class="round-settings">
       <label>
@@ -34,7 +37,6 @@
     <section class="matchup-info" aria-live="polite">
       <p id="current-round">第一輪</p>
       <p id="current-matchup">一家 VS 二家</p>
-      <p id="sync-status" class="sync-status">同步：本機模式</p>
     </section>
 
     <section class="scoreboard">
@@ -100,6 +102,6 @@
     </section>
   </main>
 
-  <script src="script.js?v=20260710-1"></script>
+  <script src="script.js?v=20260710-2"></script>
 </body>
 </html>
