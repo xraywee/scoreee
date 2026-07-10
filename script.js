@@ -47,7 +47,8 @@ let matchState = {
 let syncState = {
   applyingRemoteData: false,
   writeTimer: null,
-  eventSource: null
+  eventSource: null,
+  pollTimer: null
 };
 
 const scoreAElement = document.getElementById("score-a");
@@ -482,6 +483,7 @@ function queueRemoteSave() {
   clearTimeout(syncState.writeTimer);
 
   syncState.writeTimer = setTimeout(function () {
+    syncState.writeTimer = null;
     saveRemoteState();
   }, 250);
 }
@@ -511,6 +513,8 @@ async function saveRemoteState() {
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
+
+    updateSyncStatus("已連線");
   } catch (error) {
     console.error("同步到 Firebase 失敗：", error);
     updateSyncStatus("同步失敗，暫用本機資料");
@@ -576,6 +580,18 @@ function handleRemoteEvent(event) {
   }
 }
 
+function startRemotePolling() {
+  clearInterval(syncState.pollTimer);
+
+  syncState.pollTimer = setInterval(function () {
+    if (syncState.writeTimer) {
+      return;
+    }
+
+    loadRemoteState();
+  }, 3000);
+}
+
 function initRemoteSync() {
   if (!isRemoteSyncEnabled()) {
     updateSyncStatus("本機模式");
@@ -590,6 +606,7 @@ function initRemoteSync() {
   updateSyncStatus("連線中");
 
   loadRemoteState();
+  startRemotePolling();
 
   syncState.eventSource = new EventSource(getRemoteStateUrl());
   syncState.eventSource.addEventListener("put", handleRemoteEvent);
