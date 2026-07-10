@@ -519,6 +519,29 @@ async function saveRemoteState() {
   }
 }
 
+async function loadRemoteState() {
+  try {
+    const response = await fetch(getRemoteStateUrl());
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+
+    const remoteState = await response.json();
+
+    if (remoteState) {
+      applyRemoteState(remoteState);
+    } else {
+      await saveRemoteState();
+    }
+
+    updateSyncStatus("已連線");
+  } catch (error) {
+    console.error("讀取 Firebase 資料失敗：", error);
+    updateSyncStatus("連線異常");
+  }
+}
+
 function applyRemoteState(remoteState) {
   if (!remoteState || !remoteState.gameState || !remoteState.matchState) {
     saveRemoteState();
@@ -561,6 +584,8 @@ function initRemoteSync() {
   }
 
   updateSyncStatus("連線中");
+
+  loadRemoteState();
 
   syncState.eventSource = new EventSource(getRemoteStateUrl());
   syncState.eventSource.addEventListener("put", handleRemoteEvent);
