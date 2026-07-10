@@ -533,8 +533,6 @@ async function loadRemoteState() {
     } else {
       await saveRemoteState();
     }
-
-    updateSyncStatus("已連線");
   } catch (error) {
     console.error("讀取 Firebase 資料失敗：", error);
     updateSyncStatus("連線異常");
@@ -560,7 +558,6 @@ function applyRemoteState(remoteState) {
 
   saveLocalStateOnly();
   render();
-  updateSyncStatus("已連線");
   syncState.applyingRemoteData = false;
 }
 
@@ -571,6 +568,10 @@ function handleRemoteEvent(event) {
     if (message.path === "/") {
       applyRemoteState(message.data);
     }
+
+    clearTimeout(syncState.connectionErrorTimer);
+    syncState.connectionErrorTimer = null;
+    updateSyncStatus("已連線");
   } catch (error) {
     console.error("讀取 Firebase 即時資料失敗：", error);
   }
