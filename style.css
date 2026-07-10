@@ -1,113 +1,217 @@
+@font-face {
+    font-family: "LXGW WenKai TC";
+    src: url("./fonts/LXGWWenKaiTC-Regular.ttf") format("truetype");
+    font-weight: 400;
+    font-style: normal;
+    font-display: swap;
+}
+
 * {
-  box-sizing: border-box;
+    box-sizing: border-box;
+}
+
+html,
+body,
+button,
+input,
+select,
+textarea {
+    font-family: "LXGW WenKai TC", serif;
 }
 
 body {
-  margin: 0;
-  background: #f2f2f2;
-  color: #222;
-  font-family:
-    Arial,
-    "Noto Sans TC",
-    sans-serif;
+    margin: 0;
+    background: #f4f4f4;
+    color: #333;
+    line-height: 1.6;
 }
 
 button {
-  font-family: inherit;
+    font-family: inherit;
 }
 
 .container {
-  width: min(100%, 560px);
-  margin: 0 auto;
-  padding: 20px;
+    width: min(100%, 560px);
+    margin: 0 auto;
+    padding: 20px;
 }
+
+/* =========================
+   標題
+========================= */
 
 h1 {
-  margin-top: 10px;
-  text-align: center;
+    margin: 10px 0 20px;
+    text-align: center;
+    font-size: 2rem;
+    font-weight: 400;
+    letter-spacing: 2px;
 }
 
+h2 {
+    margin-top: 0;
+    font-weight: 400;
+}
+
+.round-settings {
+    display: grid;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.round-settings label {
+    display: grid;
+    gap: 6px;
+    font-size: 18px;
+}
+
+.round-settings select {
+    width: 100%;
+    min-height: 52px;
+    padding: 10px 12px;
+    border: 1px solid #d8d8d8;
+    border-radius: 12px;
+    background: white;
+    color: inherit;
+    font: inherit;
+    font-size: 18px;
+}
+
+.matchup-info {
+    margin-bottom: 14px;
+    text-align: center;
+}
+
+.matchup-info p {
+    margin: 0;
+    font-size: 22px;
+}
+
+.matchup-info p + p {
+    margin-top: 4px;
+    font-size: 26px;
+}
+
+.sync-status {
+    margin-top: 8px;
+    color: #666;
+    font-size: 16px;
+}
+
+/* =========================
+   計分板
+========================= */
+
 .scoreboard {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 12px;
-  margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 14px;
+    margin-bottom: 18px;
 }
 
 .team-card,
 .game-card {
-  padding: 18px;
-  background: white;
-  border-radius: 16px;
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+    padding: 20px;
+    background: white;
+    border-radius: 18px;
+    box-shadow: 0 5px 16px rgba(0,0,0,.08);
 }
 
 .team-card {
-  text-align: center;
+    text-align: center;
 }
 
 .team-card h2 {
-  margin: 0;
+    margin-bottom: 8px;
 }
 
 .team-card p {
-  margin: 8px 0 0;
-  font-size: 50px;
-  font-weight: bold;
+    margin: 0;
+    font-size: 58px;
+    font-weight: 400;
+    line-height: 1;
 }
 
+/* =========================
+   題目資訊
+========================= */
+
 .game-card {
-  margin-bottom: 16px;
+    margin-bottom: 18px;
 }
 
 .question-info {
-  margin-bottom: 4px;
-  font-size: 20px;
+    margin-bottom: 4px;
+    font-size: 20px;
 }
 
 .question-score {
-  margin-top: 4px;
-  font-size: 26px;
-  font-weight: bold;
+    margin-top: 4px;
+    margin-bottom: 18px;
+    font-size: 30px;
 }
 
+/* =========================
+   按鈕
+========================= */
+
 .answer-buttons {
-  display: grid;
-  gap: 10px;
+    display: grid;
+    gap: 12px;
 }
 
 .controls {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 10px;
-  margin-bottom: 16px;
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+@media (min-width: 520px) {
+    .controls {
+        grid-template-columns: repeat(2, 1fr);
+    }
 }
 
 button {
-  min-height: 60px;
-  padding: 12px;
-  border: none;
-  border-radius: 12px;
-  background: #222;
-  color: white;
-  font-size: 18px;
-  font-weight: bold;
-  cursor: pointer;
+    min-height: 60px;
+    padding: 14px;
+    border: none;
+    border-radius: 14px;
+
+    background: #2f2f2f;
+    color: white;
+
+    font-size: 18px;
+    font-weight: 400;
+
+    cursor: pointer;
+
+    transition: .15s;
+}
+
+button:hover {
+    opacity: .92;
 }
 
 button:active {
-  transform: scale(0.98);
+    transform: scale(.98);
 }
 
 .secondary {
-  background: #6d6d6d;
+    background: #777;
 }
 
 .danger {
-  background: #ad1f2d;
+    background: #b52c3a;
 }
 
-#history-list {
-  padding-left: 22px;
-  line-height: 1.8;
+/* =========================
+   操作紀錄
+========================= */
+
+#history-list,
+#round-record-list {
+    padding-left: 22px;
+    line-height: 1.9;
 }
