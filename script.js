@@ -521,7 +521,7 @@ async function saveRemoteState() {
   }
 }
 
-async function loadRemoteState() {
+async function loadRemoteState(retryCount = 0) {
   try {
     const response = await fetch(getRemoteStateUrl());
 
@@ -540,7 +540,14 @@ async function loadRemoteState() {
     updateSyncStatus("已連線");
   } catch (error) {
     console.error("讀取 Firebase 資料失敗：", error);
-    updateSyncStatus("連線異常");
+
+    if (retryCount < 3) {
+      setTimeout(function () {
+        loadRemoteState(retryCount + 1);
+      }, 3000);
+    } else {
+      updateSyncStatus("連線異常");
+    }
   }
 }
 
