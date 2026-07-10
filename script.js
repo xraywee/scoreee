@@ -46,7 +46,8 @@ let matchState = {
 
 let syncState = {
   applyingRemoteData: false,
-  writeTimer: null,
+  gameStateSaveTimer: null,
+  matchStateSaveTimer: null,
   eventSource: null,
   pollTimer: null
 };
@@ -153,6 +154,7 @@ function updateMatchSettings() {
   const shouldAdvanceRound = hasCurrentRoundProgress();
 
   if (shouldAdvanceRound) {
+    alert(getWinnerMessage());
     finishCurrentRound();
   }
 
@@ -162,7 +164,9 @@ function updateMatchSettings() {
     rightHouse: selectedRightHouse
   };
 
-  saveGame();
+  if (shouldAdvanceRound) {
+    saveGame();
+  }
   saveMatchSettings();
   render();
 }
@@ -322,25 +326,14 @@ function undoLastAction() {
 
 function resetGame() {
   const confirmed = confirm(
-    "確定要清除所有分數與紀錄嗎？"
+    "確定要重置本輪分數與題目進度嗎？"
   );
 
   if (!confirmed) {
     return;
   }
 
-  gameState = {
-    scoreA: 0,
-    scoreB: 0,
-    questionIndex: 0,
-    history: []
-  };
-
-  matchState = {
-    ...matchState,
-    roundNumber: 1,
-    roundRecords: []
-  };
+  resetCurrentRound();
 
   saveGame();
   saveMatchSettings();
@@ -377,7 +370,7 @@ function saveGame() {
     JSON.stringify(gameState)
   );
 
-  queueRemoteSave();
+  queueRemoteGameStateSave();
 }
 
 function saveMatchSettings() {
@@ -386,7 +379,7 @@ function saveMatchSettings() {
     JSON.stringify(matchState)
   );
 
-  queueRemoteSave();
+  queueRemoteMatchStateSave();
 }
 
 function loadGame() {
@@ -475,16 +468,29 @@ function updateSyncStatus(text) {
   );
 }
 
-function queueRemoteSave() {
+function queueRemoteGameStateSave() {
   if (!isRemoteSyncEnabled() || syncState.applyingRemoteData) {
     return;
   }
 
-  clearTimeout(syncState.writeTimer);
+  clearTimeout(syncState.gameStateSaveTimer);
 
-  syncState.writeTimer = setTimeout(function () {
-    syncState.writeTimer = null;
-    saveRemoteState();
+  syncState.gameStateSaveTimer = setTimeout(function () {
+    syncState.gameStateSaveTimer = null;
+    saveRemoteGameState();
+  }, 250);
+}
+
+function queueRemoteMatchStateSave() {
+  if (!isRemoteSyncEnabled() || syncState.applyingRemoteData) {
+    return;
+  }
+
+  clearTimeout(syncState.matchStateSaveTimer);
+
+  syncState.matchStateSaveTimer = setTimeout(function () {
+    syncState.matchStateSaveTimer = null;
+    saveRemoteMatchState();
   }, 250);
 }
 
@@ -504,19 +510,49 @@ async function saveRemoteState() {
   try {
     const response = await fetch(`${getRemoteStateUrl()}?print=silent`, {
       method: "PUT",
-      headers: {
-        "Content-Type": "application/json"
-      },
+      headers: { "Content-Type": "application/json" },
       body: JSON.stringify(getStateSnapshot())
     });
 
     if (!response.ok) {
       throw new Error(`HTTP ${response.status}`);
     }
-
-    updateSyncStatus("已連線");
   } catch (error) {
     console.error("同步到 Firebase 失敗：", error);
+    updateSyncStatus("同步失敗，暫用本機資料");
+  }
+}
+
+async function saveRemoteGameState() {
+  try {
+    const response = await fetch(`${getRemoteStateUrl()}?print=silent`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ gameState: gameState, updatedAt: Date.now() })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+  } catch (error) {
+    console.error("同步 gameState 到 Firebase 失敗：", error);
+    updateSyncStatus("同步失敗，暫用本機資料");
+  }
+}
+
+async function saveRemoteMatchState() {
+  try {
+    const response = await fetch(`${getRemoteStateUrl()}?print=silent`, {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ matchState: matchState, updatedAt: Date.now() })
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}`);
+    }
+  } catch (error) {
+    console.error("同步 matchState 到 Firebase 失敗：", error);
     updateSyncStatus("同步失敗，暫用本機資料");
   }
 }
