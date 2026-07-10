@@ -1,4 +1,8 @@
-const questionScores = [10, 10, 20, 20, 30];
+const questionScores = [10, 20, 30, 40, 50];
+const buildingBlockCounts = {
+  1: 6,
+  2: 12
+};
 
 // 填入 Firebase Realtime Database URL 後，兩台裝置開同一頁就會同步。
 const syncConfig = {
@@ -34,7 +38,15 @@ let gameState = {
   scoreA: 0,
   scoreB: 0,
   questionIndex: 0,
+  buildingStage: 1,
+  buildingTeam: "A",
+  buildingComplete: false,
   history: []
+};
+
+let buildingDraft = {
+  stage: null,
+  blocks: []
 };
 
 let matchState = {
@@ -57,6 +69,8 @@ const scoreAElement = document.getElementById("score-a");
 const scoreBElement = document.getElementById("score-b");
 const scoreboardSection =
   document.getElementById("scoreboard-section");
+const buildingSection =
+  document.getElementById("building-section");
 const questionSection =
   document.getElementById("question-section");
 const roundControlsSection =
@@ -80,9 +94,29 @@ const updateRoundButton =
 
 const questionNumberElement =
   document.getElementById("question-number");
+const questionInfoElement =
+  document.getElementById("question-info");
 
 const questionScoreElement =
   document.getElementById("question-score");
+const buildingStageSelect =
+  document.getElementById("building-stage-select");
+const buildingTeamSelect =
+  document.getElementById("building-team-select");
+const buildingCurrentTargetElement =
+  document.getElementById("building-current-target");
+const buildingBlockListElement =
+  document.getElementById("building-block-list");
+const buildingShapeScoreElement =
+  document.getElementById("building-shape-score");
+const buildingPositionScoreElement =
+  document.getElementById("building-position-score");
+const buildingTotalScoreElement =
+  document.getElementById("building-total-score");
+const buildingMaxScoreElement =
+  document.getElementById("building-max-score");
+const buildingSubmitButton =
+  document.getElementById("building-submit-current");
 
 const historyListElement =
   document.getElementById("history-list");
@@ -117,6 +151,32 @@ buttonB.addEventListener("click", function () {
 
 buttonNone.addEventListener("click", function () {
   answerQuestion("none");
+});
+
+buildingStageSelect.addEventListener("change", function () {
+  gameState = {
+    ...gameState,
+    buildingStage: buildingStageSelect.value === "2" ? 2 : 1
+  };
+
+  resetBuildingDraft();
+  saveGame();
+  render();
+});
+
+buildingTeamSelect.addEventListener("change", function () {
+  gameState = {
+    ...gameState,
+    buildingTeam: buildingTeamSelect.value === "B" ? "B" : "A"
+  };
+
+  resetBuildingDraft();
+  saveGame();
+  render();
+});
+
+buildingSubmitButton.addEventListener("click", function () {
+  submitBuildingScore(gameState.buildingTeam === "B" ? "B" : "A");
 });
 
 undoButton.addEventListener("click", undoLastAction);
@@ -202,6 +262,204 @@ function isTournamentComplete() {
   return matchState.roundNumber > roundLabels.length;
 }
 
+function getBuildingStageName(stage) {
+  return stage === 2 ? "第二輪" : "第一輪";
+}
+
+function getBuildingBlockCount(stage) {
+  return buildingBlockCounts[stage] || buildingBlockCounts[1];
+}
+
+function getCompletedBuildingScoreCount(history = gameState.history) {
+  return history.filter(function (record) {
+    return record.type === "building";
+  }).length;
+}
+
+function isBuildingComplete() {
+  return (
+    Boolean(gameState.buildingComplete) ||
+    getCompletedBuildingScoreCount() >= 4
+  );
+}
+
+function resetBuildingDraft() {
+  buildingDraft = {
+    stage: null,
+    blocks: []
+  };
+}
+
+function ensureBuildingDraft() {
+  const stage = gameState.buildingStage === 2 ? 2 : 1;
+
+  if (buildingDraft.stage === stage) {
+    return;
+  }
+
+  const blockCount = getBuildingBlockCount(stage);
+  buildingDraft = {
+    stage: stage,
+    blocks: Array.from({ length: blockCount }, function () {
+      return {
+        shape: false,
+        position: false
+      };
+    })
+  };
+
+  renderBuildingBlocks();
+}
+
+function getBuildingScoreSummary() {
+  ensureBuildingDraft();
+
+  const shapeScore = buildingDraft.blocks.filter(function (block) {
+    return block.shape;
+  }).length;
+  const positionScore = buildingDraft.blocks.filter(function (block) {
+    return block.position;
+  }).length;
+  const totalScore = shapeScore + positionScore;
+  const maxScore = getBuildingBlockCount(buildingDraft.stage) * 2;
+
+  return {
+    shapeScore: shapeScore,
+    positionScore: positionScore,
+    totalScore: totalScore,
+    maxScore: maxScore
+  };
+}
+
+function updateBuildingScoreSummary() {
+  const summary = getBuildingScoreSummary();
+
+  buildingShapeScoreElement.textContent = summary.shapeScore;
+  buildingPositionScoreElement.textContent = summary.positionScore;
+  buildingTotalScoreElement.textContent = summary.totalScore;
+  buildingMaxScoreElement.textContent = summary.maxScore;
+}
+
+function renderBuildingBlocks() {
+  buildingBlockListElement.innerHTML = "";
+
+  buildingDraft.blocks.forEach(function (block, index) {
+    const blockNumber = index + 1;
+    const blockElement = document.createElement("div");
+    blockElement.className = "building-block";
+
+    const titleElement = document.createElement("strong");
+    titleElement.className = "building-block-number";
+    titleElement.textContent = `${blockNumber} 號積木`;
+
+    const optionsElement = document.createElement("div");
+    optionsElement.className = "building-score-options";
+
+    const shapeLabel = document.createElement("label");
+    const shapeInput = document.createElement("input");
+    shapeInput.type = "checkbox";
+    shapeInput.checked = block.shape;
+    shapeInput.addEventListener("change", function () {
+      buildingDraft.blocks[index].shape = shapeInput.checked;
+      updateBuildingScoreSummary();
+    });
+    shapeLabel.append(shapeInput, "形狀正確");
+
+    const positionLabel = document.createElement("label");
+    const positionInput = document.createElement("input");
+    positionInput.type = "checkbox";
+    positionInput.checked = block.position;
+    positionInput.addEventListener("change", function () {
+      buildingDraft.blocks[index].position = positionInput.checked;
+      updateBuildingScoreSummary();
+    });
+    positionLabel.append(positionInput, "位置正確");
+
+    optionsElement.append(shapeLabel, positionLabel);
+    blockElement.append(titleElement, optionsElement);
+    buildingBlockListElement.appendChild(blockElement);
+  });
+
+  updateBuildingScoreSummary();
+}
+
+function clearBuildingScores() {
+  buildingDraft.blocks = buildingDraft.blocks.map(function () {
+    return {
+      shape: false,
+      position: false
+    };
+  });
+
+  renderBuildingBlocks();
+}
+
+function advanceBuildingStep() {
+  const currentTeam = gameState.buildingTeam === "B" ? "B" : "A";
+  const currentStage = gameState.buildingStage === 2 ? 2 : 1;
+
+  if (currentTeam === "A") {
+    gameState.buildingTeam = "B";
+  } else if (currentStage === 1) {
+    gameState.buildingTeam = "A";
+    gameState.buildingStage = 2;
+  } else {
+    gameState.buildingTeam = "A";
+    gameState.buildingStage = 1;
+    gameState.buildingComplete = true;
+  }
+
+  resetBuildingDraft();
+}
+
+function submitBuildingScore(team) {
+  if (!matchState.roundActive) {
+    alert("請先按更新本輪開始計分。");
+    return;
+  }
+
+  if (isBuildingComplete()) {
+    alert("盲眼建築師已完成四次評分。");
+    return;
+  }
+
+  const summary = getBuildingScoreSummary();
+
+  if (
+    summary.totalScore === 0 &&
+    !confirm("目前盲眼建築師分數為 0，確定要送出嗎？")
+  ) {
+    return;
+  }
+
+  const previousState = structuredClone(gameState);
+  const teamName = getTeamName(team);
+  const stage = gameState.buildingStage === 2 ? 2 : 1;
+  const recordText =
+    `盲眼建築師${getBuildingStageName(stage)}：` +
+    `${teamName} +${summary.totalScore} 分`;
+
+  if (team === "A") {
+    gameState.scoreA += summary.totalScore;
+  } else {
+    gameState.scoreB += summary.totalScore;
+  }
+
+  gameState.history.push({
+    type: "building",
+    text: recordText,
+    team: team,
+    teamName: teamName,
+    score: summary.totalScore,
+    buildingStage: stage,
+    previousState: previousState
+  });
+
+  advanceBuildingStep();
+  saveGame();
+  render();
+}
+
 function getWinnerName(scoreA, scoreB, leftHouse, rightHouse) {
   if (scoreA > scoreB) {
     return leftHouse;
@@ -282,8 +540,13 @@ function resetCurrentRound() {
     scoreA: 0,
     scoreB: 0,
     questionIndex: 0,
+    buildingStage: 1,
+    buildingTeam: "A",
+    buildingComplete: false,
     history: []
   };
+
+  resetBuildingDraft();
 }
 
 function answerQuestion(team) {
@@ -306,7 +569,8 @@ function answerQuestion(team) {
     gameState.scoreA += score;
 
     gameState.history.push({
-      text: `第 ${questionNumber} 題：${getTeamName("A")} +${score} 分`,
+      type: "question",
+      text: `魔法球第 ${questionNumber} 題：${getTeamName("A")} +${score} 分`,
       team: "A",
       teamName: getTeamName("A"),
       score: score,
@@ -317,7 +581,8 @@ function answerQuestion(team) {
     gameState.scoreB += score;
 
     gameState.history.push({
-      text: `第 ${questionNumber} 題：${getTeamName("B")} +${score} 分`,
+      type: "question",
+      text: `魔法球第 ${questionNumber} 題：${getTeamName("B")} +${score} 分`,
       team: "B",
       teamName: getTeamName("B"),
       score: score,
@@ -326,7 +591,8 @@ function answerQuestion(team) {
     });
   } else {
     gameState.history.push({
-      text: `第 ${questionNumber} 題：無人答對`,
+      type: "question",
+      text: `魔法球第 ${questionNumber} 題：無人答對`,
       team: "none",
       questionNumber: questionNumber,
       previousState: previousState
@@ -348,6 +614,13 @@ function undoLastAction() {
   }
 
   gameState = lastAction.previousState;
+  gameState.buildingStage =
+    gameState.buildingStage === 2 ? 2 : 1;
+  gameState.buildingTeam =
+    gameState.buildingTeam === "B" ? "B" : "A";
+  gameState.buildingComplete =
+    Boolean(gameState.buildingComplete);
+  resetBuildingDraft();
 
   saveGame();
   render();
@@ -428,7 +701,25 @@ function loadGame() {
   }
 
   try {
-    gameState = JSON.parse(savedData);
+    const savedGameState = JSON.parse(savedData);
+
+    const savedHistory = Array.isArray(savedGameState.history)
+      ? savedGameState.history
+      : [];
+
+    gameState = {
+      scoreA: savedGameState.scoreA || 0,
+      scoreB: savedGameState.scoreB || 0,
+      questionIndex: savedGameState.questionIndex || 0,
+      buildingStage:
+        savedGameState.buildingStage === 2 ? 2 : 1,
+      buildingTeam:
+        savedGameState.buildingTeam === "B" ? "B" : "A",
+      buildingComplete:
+        Boolean(savedGameState.buildingComplete) ||
+        getCompletedBuildingScoreCount(savedHistory) >= 4,
+      history: savedHistory
+    };
   } catch (error) {
     console.error("讀取儲存資料失敗：", error);
   }
@@ -634,15 +925,23 @@ function applyRemoteState(remoteState) {
   }
 
   const remoteGameState = remoteState.gameState;
+  const remoteHistory = Array.isArray(remoteGameState.history)
+    ? remoteGameState.history
+    : [];
 
   syncState.applyingRemoteData = true;
   gameState = {
     scoreA: remoteGameState.scoreA || 0,
     scoreB: remoteGameState.scoreB || 0,
     questionIndex: remoteGameState.questionIndex || 0,
-    history: Array.isArray(remoteGameState.history)
-      ? remoteGameState.history
-      : []
+    buildingStage:
+      remoteGameState.buildingStage === 2 ? 2 : 1,
+    buildingTeam:
+      remoteGameState.buildingTeam === "B" ? "B" : "A",
+    buildingComplete:
+      Boolean(remoteGameState.buildingComplete) ||
+      getCompletedBuildingScoreCount(remoteHistory) >= 4,
+    history: remoteHistory
   };
   matchState = {
     roundNumber: remoteState.matchState.roundNumber || 1,
@@ -718,9 +1017,19 @@ function initRemoteSync() {
 }
 
 function renderHistoryText(record) {
+  if (record.type === "building") {
+    return record.text || "";
+  }
+
+  if (record.type === "question") {
+    return record.text ||
+      `魔法球第 ${record.questionNumber} 題：${record.teamName} +${record.score} 分`;
+  }
+
   if (record.team === "A" || record.team === "B") {
     const teamName = record.teamName || getTeamName(record.team);
-    return `第 ${record.questionNumber} 題：${teamName} +${record.score} 分`;
+    const questionNumber = record.questionNumber || "?";
+    return `魔法球第 ${questionNumber} 題：${teamName} +${record.score || 0} 分`;
   }
 
   return (record.text || "")
@@ -728,13 +1037,42 @@ function renderHistoryText(record) {
     .replaceAll("B 隊", getTeamName("B"));
 }
 
+function renderBuildingTargetControls() {
+  const currentTeam = gameState.buildingTeam === "B" ? "B" : "A";
+  const currentTeamName = getTeamName(currentTeam);
+  const currentStage = gameState.buildingStage === 2 ? 2 : 1;
+
+  buildingTeamSelect.innerHTML = "";
+
+  [
+    { value: "A", label: matchState.leftHouse },
+    { value: "B", label: matchState.rightHouse }
+  ].forEach(function (optionData) {
+    const option = document.createElement("option");
+    option.value = optionData.value;
+    option.textContent = optionData.label;
+    buildingTeamSelect.appendChild(option);
+  });
+
+  buildingTeamSelect.value = currentTeam;
+  buildingStageSelect.value = String(currentStage);
+  buildingCurrentTargetElement.textContent =
+    `目前評分：${currentTeamName} ${getBuildingStageName(currentStage)}建築`;
+  buildingSubmitButton.textContent = `送出給 ${currentTeamName}`;
+}
+
 function render() {
   const isRoundActive = Boolean(matchState.roundActive);
+  const buildingComplete = isBuildingComplete();
 
   leftHouseSelect.value = matchState.leftHouse;
   rightHouseSelect.value = matchState.rightHouse;
 
   scoreboardSection.classList.toggle("is-hidden", !isRoundActive);
+  buildingSection.classList.toggle(
+    "is-hidden",
+    !isRoundActive || buildingComplete
+  );
   questionSection.classList.toggle("is-hidden", !isRoundActive);
   roundControlsSection.classList.toggle("is-hidden", !isRoundActive);
   historySection.classList.toggle("is-hidden", !isRoundActive);
@@ -757,19 +1095,31 @@ function render() {
   scoreAElement.textContent = gameState.scoreA;
   scoreBElement.textContent = gameState.scoreB;
 
+  if (!buildingComplete) {
+    renderBuildingTargetControls();
+    ensureBuildingDraft();
+    updateBuildingScoreSummary();
+  }
+
   const finished =
     gameState.questionIndex >= questionScores.length;
 
   if (finished) {
-    questionNumberElement.textContent = "完成";
+    questionInfoElement.textContent = "魔法球題目已完成";
     questionScoreElement.textContent = "0";
   } else {
-    questionNumberElement.textContent =
+    questionInfoElement.innerHTML =
+      '第 <span id="question-number"></span> 題';
+    document.getElementById("question-number").textContent =
       gameState.questionIndex + 1;
 
     questionScoreElement.textContent =
       questionScores[gameState.questionIndex];
   }
+
+  buttonA.disabled = finished;
+  buttonB.disabled = finished;
+  buttonNone.disabled = finished;
 
   historyListElement.innerHTML = "";
 

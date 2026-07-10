@@ -51,10 +51,47 @@
       </div>
     </section>
 
-    <section id="question-section" class="game-card">
-      <h2>題目遊戲</h2>
+    <section id="building-section" class="game-card">
+      <h2>盲眼建築師</h2>
 
-      <p class="question-info">
+      <label class="building-stage-control">
+        建築階段
+        <select id="building-stage-select">
+          <option value="1">第一輪建築（6 個積木）</option>
+          <option value="2">第二輪建築（12 個積木）</option>
+        </select>
+      </label>
+
+      <label class="building-stage-control">
+        評分家名
+        <select id="building-team-select"></select>
+      </label>
+
+      <p id="building-current-target" class="building-current-target">
+        目前評分：A 隊 第一輪建築
+      </p>
+
+      <div id="building-block-list" class="building-block-list"></div>
+
+      <div class="building-summary">
+        <p>形狀分：<span id="building-shape-score">0</span> 分</p>
+        <p>位置分：<span id="building-position-score">0</span> 分</p>
+        <p>
+          本次合計：
+          <span id="building-total-score">0</span> /
+          <span id="building-max-score">12</span> 分
+        </p>
+      </div>
+
+      <div class="building-submit-buttons">
+        <button id="building-submit-current">送出本次建築分數</button>
+      </div>
+    </section>
+
+    <section id="question-section" class="game-card">
+      <h2>魔法球</h2>
+
+      <p id="question-info" class="question-info">
         第 <span id="question-number">1</span> 題
       </p>
 
@@ -104,6 +141,6 @@
     </section>
   </main>
 
-  <script src="script.js?v=9"></script>
+  <script src="script.js?v=12"></script>
 </body>
 </html>
